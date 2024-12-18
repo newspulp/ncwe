@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Style Inspector and Editor</title>
+    <style>
+      #editor-main-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        margin-right: auto;
+        margin-left: auto;
+      }
+
+      .element-inserter {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background: white;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .editing-mode * {
+        pointer-events: none;
+      }
+
+      .editing-mode .style-editor,
+      .editing-mode .style-editor *,
+      .editing-mode .current-element,
+      .editing-mode .element-inserter,
+      .editing-mode .element-inserter * {
+        pointer-events: auto;
+      }
+
+      /* Add styles for draggable elements */
+      .draggable {
+        cursor: move;
+        user-select: none;
+        position: relative;
+      }
+
+      .dragging {
+        opacity: 0.8;
+        position: absolute;
+        pointer-events: none;
+        z-index: 1000;
+      }
+
+      .drag-ghost {
+        border: 2px dashed #4caf50;
+        background: rgba(76, 175, 80, 0.1);
+        position: absolute;
+        pointer-events: none;
+        z-index: 999;
+      }
+
+      /* Position indicator */
+      .position-indicator {
+        position: fixed;
+        background: #4caf50;
+        height: 2px;
+        pointer-events: none;
+        z-index: 998;
+        display: none;
+      }
+
+      /* Element inserter */
+      .element-inserter {
+        padding: 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        background: white;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      /* Element inserter buttons */
+      .element-inserter .buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .element-inserter button {
+        padding: 8px 16px;
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        cursor: pointer;
+        color: #374151;
+      }
+
+      .element-inserter button:hover {
+        background: #e5e7eb;
+      }
+      /* Style popup */
+      .style-popup {
+        position: fixed;
+        background: rgba(0, 0, 0, 0.9);
+        color: #fff;
+        padding: 1rem;
+        border-radius: 6px;
+        font-size: 14px;
+        max-width: 300px;
+        z-index: 1000;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-family: monospace;
+      }
+
+      .style-popup.visible {
+        opacity: 1;
+      }
+
+      /* Style editor */
+      .style-editor {
+        position: fixed;
+        right: 20px;
+        top: 20px;
+        background: #1e1e1e;
+        color: #fff;
+        height: calc(100vh - 80px);
+        overflow-y: auto;
+        padding: 1rem;
+        border-radius: 8px;
+        width: 300px;
+        font-family: system-ui;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        display: none;
+        z-index: 1001;
+      }
+
+      .style-editor.visible {
+        display: block;
+      }
+
+      .editor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #333;
+      }
+
+      .element-path {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 1rem;
+      }
+
+      .style-input-group {
+        margin-bottom: 1rem;
+      }
+
+      .style-input-group label {
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #aaa;
+        font-size: 12px;
+      }
+
+      .style-input-group input {
+        width: 100%;
+        padding: 0.5rem;
+        background: #2d2d2d;
+        border: 1px solid #444;
+        color: #fff;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .style-input-group input:focus {
+        outline: none;
+        border-color: #666;
+      }
+
+      .edit-buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .edit-buttons button {
+        flex: 1;
+        padding: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .apply-btn {
+        background: #4caf50;
+        color: white;
+      }
+
+      .reset-btn {
+        background: #666;
+        color: white;
+      }
+
+      /* History panel */
+      .history-panel {
+        position: fixed;
+        left: 20px;
+        bottom: 20px;
+        width: 300px;
+        max-height: 300px;
+        background: #1e1e1e;
+        color: #fff;
+        padding: 1rem;
+        border-radius: 8px;
+        font-family: system-ui;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 1001;
+        overflow-y: auto;
+        display: none;
+      }
+
+      .history-panel.visible {
+        display: block;
+      }
+
+      .history-item {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #333;
+      }
+
+      .history-timestamp {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 0.5rem;
+      }
+
+      .history-path {
+        font-family: monospace;
+        font-size: 12px;
+        margin-bottom: 0.5rem;
+        word-break: break-all;
+      }
+
+      .history-changes {
+        font-family: monospace;
+        font-size: 12px;
+        color: #a8e6cf;
+      }
+
+      /* Element highlight */
+      .highlight-overlay {
+        position: fixed;
+        pointer-events: none;
+        z-index: 999;
+        transition: all 0.2s;
+        border: 2px solid transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h2>Style Inspector Demo</h2>
+      <p>Hover over elements to inspect their styles. Click to edit them.</p>
+      <button
+        style="
+          background: #4caf50;
+          color: white;
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+        "
+      >
+        Sample Button
+      </button>
+    </div>
+
+    <script>
+      // Initialize state
+      let currentElement = null;
+      let originalStyles = null;
+      let styleHistory = [];
+
+      // Dragging state
+      let isDragging = false;
+      let dragElement = null;
+      let dragGhost = null;
+      let initialX = 0;
+      let initialY = 0;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      // Create UI elements
+      const popup = document.createElement("div");
+      popup.className = "style-popup";
+      document.body.appendChild(popup);
+
+      const highlight = document.createElement("div");
+      highlight.className = "highlight-overlay";
+      document.body.appendChild(highlight);
+
+      // Create editor
+      const editor = document.createElement("div");
+      editor.className = "style-editor";
+      editor.innerHTML = `
+            <div class="editor-header">
+                <strong>Style Editor</strong>
+                <button class="reset-btn" onclick="closeEditor()">Close</button>
+            </div>
+            <div class="element-path"></div>
+            <div class="style-inputs"></div>
+            <div class="edit-buttons">
+                <button class="reset-btn" onclick="resetStyles()">Reset</button>
+                <button class="apply-btn" onclick="applyStyles()">Apply</button>
+                <button class="reset-btn" onclick="toggleHistory()">History</button>
+            </div>
+        `;
+      document.body.appendChild(editor);
+
+      // Create history panel
+      const historyPanel = document.createElement("div");
+      historyPanel.className = "history-panel";
+      historyPanel.innerHTML = `
+            <div class="editor-header">
+                <strong>Style History</strong>
+                <button class="reset-btn" onclick="toggleHistory()">Close</button>
+            </div>
+            <div class="history-list"></div>
+        `;
+      document.body.appendChild(historyPanel);
+
+      // Create position indicator
+      const positionIndicator = document.createElement("div");
+      positionIndicator.className = "position-indicator";
+      document.body.appendChild(positionIndicator);
+
+      // Create main container
+      const mainContainer = document.createElement("div");
+      mainContainer.id = "editor-main-container";
+
+      // Style properties to edit
+      const editableProperties = [
+        "color",
+        "background-color",
+        "padding",
+        "margin",
+        "border",
+        "border-radius",
+        "font-size",
+        "font-weight",
+        "text-decoration",
+        "opacity",
+      ];
+
+      // Create element inserter
+      const insertSelector = document.createElement("div");
+      insertSelector.className = "element-inserter";
+
+      // Create insert options
+      const insertOptions = document.createElement("div");
+      insertOptions.className = "buttons";
+
+      const ALLOWED_ELEMENTS = [
+        { type: "div", label: "Container" },
+        { type: "p", label: "Paragraph" },
+        { type: "span", label: "Text" },
+        { type: "button", label: "Button" },
+      ];
+
+      ALLOWED_ELEMENTS.forEach(({ type, label }) => {
+        const button = document.createElement("button");
+        button.textContent = label;
+
+        button.onclick = function () {
+          const element = document.createElement(type);
+          element.textContent = "New Element";
+          mainContainer.appendChild(element);
+        };
+
+        insertOptions.appendChild(button);
+      });
+
+      insertSelector.appendChild(insertOptions);
+      document.body.appendChild(insertSelector);
+
+      const viewportSizes = {
+        desktop: { width: 1280, height: "100%" },
+        laptop: { width: 768, height: "100%" },
+        mobile: { width: 640, height: "100%" },
+      };
+
+      function setViewportSize(size) {
+        const dimensions = viewportSizes[size];
+
+        // If the main container is already at the desired size, reset to default
+        if (mainContainer.style.maxWidth === `${dimensions.width}px`) {
+          mainContainer.style.height = "100%";
+          mainContainer.style.maxWidth = "100%";
+          mainContainer.style.transform = "scale(1)";
+          return;
+        }
+
+        mainContainer.style.height = dimensions.height;
+        mainContainer.style.maxWidth = `${dimensions.width}px`;
+
+        const screenWidth = window.innerWidth;
+        if (screenWidth < dimensions.width) {
+          // scale down
+          const scale = screenWidth / dimensions.width;
+          mainContainer.style.transform = `scale(${scale})`;
+        } else {
+          mainContainer.style.transform = "scale(1)";
+        }
+      }
+
+      Object.keys(viewportSizes).forEach((size) => {
+        const button = document.createElement("button");
+        button.textContent = size.charAt(0).toUpperCase() + size.slice(1);
+        button.dataset.size = size;
+
+        button.onclick = () => setViewportSize(size);
+        insertOptions.appendChild(button);
+      });
+
+      // Helper to get element path
+      function getElementPath(element) {
+        const path = [];
+        while (element && element.tagName) {
+          let selector = element.tagName.toLowerCase();
+          if (element.id) {
+            selector += `#${element.id}`;
+          } else if (element.className) {
+            selector += `.${element.className.split(" ")[0]}`;
+          }
+          path.unshift(selector);
+          element = element.parentElement;
+        }
+
+        // remove editor-main-container from path
+        path.shift();
+
+        return path.join(" > ");
+      }
+
+      // Update history display
+      function updateHistoryDisplay() {
+        const historyList = historyPanel.querySelector(".history-list");
+        historyList.innerHTML = styleHistory
+          .map(
+            (entry, index) => `
+                <div class="history-item">
+                    <div class="history-timestamp">${entry.timestamp.toLocaleString()}</div>
+                    <div class="history-path">${entry.elementPath}</div>
+                    <div class="history-changes">
+                        ${Object.entries(entry.changes)
+                          .map(([prop, value]) => `${prop}: ${value}`)
+                          .join("<br>")}
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      // Show styles popup
+      function showStyles(element) {
+        const computedStyle = window.getComputedStyle(element);
+
+        let content = `<div style="color: #ffd700; margin-bottom: 0.5rem;">
+                            &lt;${element.tagName.toLowerCase()}&gt;
+                          </div>`;
+
+        editableProperties.forEach((prop) => {
+          const value = computedStyle.getPropertyValue(prop);
+          if (value && value !== "none" && value !== "normal") {
+            content += `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span>${prop}:</span>
+                            <span style="color: #a8e6cf; margin-left: 1rem;">${value}</span>
+                        </div>
+                    `;
+          }
+        });
+
+        popup.innerHTML = content;
+        popup.classList.add("visible");
+
+        // Position popup
+        const rect = element.getBoundingClientRect();
+        const popupRect = popup.getBoundingClientRect();
+        const margin = 10;
+
+        // Try all possible positions
+        const positions = [
+          // Right position
+          {
+            left: rect.right + margin,
+            top: rect.top,
+            score: 0,
+          },
+          // Left position
+          {
+            left: rect.left - popupRect.width - margin,
+            top: rect.top,
+            score: 0,
+          },
+          // Bottom position
+          {
+            left: rect.left,
+            top: rect.bottom + margin,
+            score: 0,
+          },
+          // Top position
+          {
+            left: rect.left,
+            top: rect.top - popupRect.height - margin,
+            score: 0,
+          },
+        ];
+
+        // Score each position
+        positions.forEach((pos) => {
+          let score = 0;
+
+          // Check viewport fit
+          const withinX =
+            pos.left >= margin &&
+            pos.left + popupRect.width <= window.innerWidth - margin;
+          const withinY =
+            pos.top >= margin &&
+            pos.top + popupRect.height <= window.innerHeight - margin;
+
+          // Check element overlap
+          const noOverlap = !(
+            pos.left < rect.right &&
+            pos.left + popupRect.width > rect.left &&
+            pos.top < rect.bottom &&
+            pos.top + popupRect.height > rect.top
+          );
+
+          // Score calculation
+          if (withinX) score += 1000;
+          if (withinY) score += 1000;
+          if (noOverlap) score += 2000;
+
+          // Prefer right or left positions
+          if (
+            pos.left === rect.right + margin ||
+            pos.left === rect.left - popupRect.width - margin
+          ) {
+            score += 500;
+          }
+
+          // Store score
+          pos.score = score;
+        });
+
+        // Find best position
+        const bestPos = positions.reduce((best, current) =>
+          current.score > best.score ? current : best
+        );
+
+        // Apply final position with viewport bounds check
+        const finalLeft = Math.max(
+          margin,
+          Math.min(bestPos.left, window.innerWidth - popupRect.width - margin)
+        );
+        const finalTop = Math.max(
+          margin,
+          Math.min(bestPos.top, window.innerHeight - popupRect.height - margin)
+        );
+
+        popup.style.left = `${finalLeft}px`;
+        popup.style.top = `${finalTop}px`;
+      }
+
+      // Show editor
+      function showEditor(element) {
+        currentElement = element;
+        originalStyles = { ...element.style };
+
+        const computedStyle = window.getComputedStyle(element);
+        editor.querySelector(".element-path").textContent =
+          getElementPath(element);
+
+        const inputsHtml = editableProperties
+          .map((prop) => {
+            const value =
+              element.style[prop] || computedStyle.getPropertyValue(prop);
+            return `
+                    <div class="style-input-group">
+                        <label>${prop}:</label>
+                        <input type="text" name="${prop}" value="${value}" />
+                    </div>
+                `;
+          })
+          .join("");
+
+        editor.querySelector(".style-inputs").innerHTML = inputsHtml;
+        editor.classList.add("visible");
+
+        updateHighlight(element, "#4CAF50");
+      }
+
+      // Update highlight
+      function updateHighlight(element, color) {
+        const rect = element.getBoundingClientRect();
+        highlight.style.border = `2px solid ${color}`;
+        highlight.style.left = `${rect.left - 2}px`;
+        highlight.style.top = `${rect.top - 2}px`;
+        highlight.style.width = `${rect.width + 4}px`;
+        highlight.style.height = `${rect.height + 4}px`;
+        highlight.style.opacity = "1";
+      }
+
+      // Apply styles
+      function applyStyles() {
+        if (!currentElement) return;
+
+        const changes = {};
+        const inputs = editor.querySelectorAll("input");
+        inputs.forEach((input) => {
+          if (
+            input.value.trim() &&
+            input.value !== originalStyles[input.name]
+          ) {
+            currentElement.style[input.name] = input.value;
+            changes[input.name] = input.value;
+          }
+        });
+
+        if (Object.keys(changes).length > 0) {
+          styleHistory.push({
+            elementPath: getElementPath(currentElement),
+            changes: changes,
+            timestamp: new Date(),
+          });
+          updateHistoryDisplay();
+        }
+      }
+
+      // Reset styles
+      function resetStyles() {
+        if (!currentElement) return;
+
+        Object.keys(currentElement.style).forEach((prop) => {
+          currentElement.style[prop] = originalStyles[prop] || "";
+        });
+
+        showEditor(currentElement);
+      }
+
+      // Toggle history panel
+      function toggleHistory() {
+        historyPanel.classList.toggle("visible");
+        updateHistoryDisplay();
+      }
+
+      // Close editor
+      function closeEditor() {
+        editor.classList.remove("visible");
+        highlight.style.opacity = "0";
+        currentElement = null;
+        originalStyles = null;
+      }
+
+      function enableDragging(element) {
+        if (
+          element === document.body ||
+          element === document.documentElement ||
+          element.id === "editor-main-container"
+        )
+          return;
+
+        element.classList.add("draggable");
+
+        element.addEventListener("mousedown", startDragging);
+        document.addEventListener("mousemove", handleDrag);
+        document.addEventListener("mouseup", stopDragging);
+      }
+
+      function startDragging(e) {
+        if (!e.target.classList.contains("draggable")) return;
+
+        // Don't start dragging on initial click, only set flag for potential drag
+        isDragging = false;
+        dragElement = e.target;
+
+        initialX = e.clientX;
+        initialY = e.clientY;
+
+        // We'll create the ghost element only if the mouse actually moves
+        document.addEventListener("mousemove", initDragMove);
+        document.addEventListener("mouseup", cancelDragInit);
+      }
+
+      // New function to handle initial mouse movement
+      function initDragMove(e) {
+        // Check if mouse has moved enough to start drag
+        const moveThreshold = 5;
+        const deltaX = Math.abs(e.clientX - initialX);
+        const deltaY = Math.abs(e.clientY - initialY);
+
+        if (deltaX > moveThreshold || deltaY > moveThreshold) {
+          isDragging = true;
+
+          // Create ghost element
+          dragGhost = dragElement.cloneNode(true);
+          dragGhost.classList.add("drag-ghost");
+          document.body.appendChild(dragGhost);
+
+          // Calculate offset for ghost positioning
+          const rect = dragElement.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+
+          // Update ghost position
+          updateGhostPosition(e);
+
+          // Remove init listeners and add regular drag listeners
+          document.removeEventListener("mousemove", initDragMove);
+          document.removeEventListener("mouseup", cancelDragInit);
+          document.addEventListener("mousemove", handleDrag);
+          document.addEventListener("mouseup", stopDragging);
+        }
+      }
+
+      // New function to cancel drag initialization
+      function cancelDragInit() {
+        document.removeEventListener("mousemove", initDragMove);
+        document.removeEventListener("mouseup", cancelDragInit);
+        dragElement = null;
+        isDragging = false;
+      }
+
+      function handleDrag(e) {
+        if (!isDragging) return;
+
+        e.preventDefault();
+        updateGhostPosition(e);
+
+        // Find potential drop target
+        const dropTarget = findDropTarget(e);
+        if (dropTarget) {
+          showDropIndicator(dropTarget, e);
+        } else {
+          hideDropIndicator();
+        }
+      }
+
+      function updateGhostPosition(e) {
+        if (!dragGhost) return;
+
+        const x = e.clientX - offsetX;
+        const y = e.clientY - offsetY;
+
+        dragGhost.style.left = `${x}px`;
+        dragGhost.style.top = `${y}px`;
+        dragGhost.style.width = `${dragElement.offsetWidth}px`;
+        dragGhost.style.height = `${dragElement.offsetHeight}px`;
+      }
+
+      function findDropTarget(e) {
+        const elements = document.elementsFromPoint(e.clientX, e.clientY);
+        const mainContainer = document.getElementById("editor-main-container");
+
+        // Check if we're within the main container bounds
+        const containerRect = mainContainer.getBoundingClientRect();
+        if (
+          e.clientX < containerRect.left ||
+          e.clientX > containerRect.right ||
+          e.clientY < containerRect.top ||
+          e.clientY > containerRect.bottom
+        ) {
+          return null;
+        }
+
+        return elements.find(
+          (el) =>
+            el !== dragElement &&
+            el !== dragGhost &&
+            el !== document.body &&
+            el !== document.documentElement &&
+            !el.classList.contains("style-editor") &&
+            !el.classList.contains("style-popup") &&
+            !el.classList.contains("element-inserter") &&
+            (el === mainContainer || mainContainer.contains(el))
+        );
+      }
+
+      function showDropIndicator(target, e) {
+        const rect = target.getBoundingClientRect();
+        const mouseY = e.clientY;
+        const threshold = rect.height / 2;
+        const isAbove = mouseY - rect.top < threshold;
+
+        positionIndicator.style.display = "block";
+        positionIndicator.style.width = `${rect.width}px`;
+        positionIndicator.style.left = `${rect.left}px`;
+        positionIndicator.style.top = `${isAbove ? rect.top : rect.bottom}px`;
+      }
+
+      function hideDropIndicator() {
+        positionIndicator.style.display = "none";
+      }
+
+      function stopDragging(e) {
+        if (!isDragging) return;
+
+        const dropTarget = findDropTarget(e);
+        if (dropTarget) {
+          const rect = dropTarget.getBoundingClientRect();
+          const mouseY = e.clientY;
+          const threshold = rect.height / 2;
+          const isAbove = mouseY - rect.top < threshold;
+
+          // Record original path before moving
+          const originalPath = getElementPath(dragElement);
+          const originalParent = dragElement.parentNode;
+          const originalNextSibling = dragElement.nextSibling;
+
+          // Perform the move
+          if (isAbove) {
+            dropTarget.parentNode.insertBefore(dragElement, dropTarget);
+          } else {
+            dropTarget.parentNode.insertBefore(
+              dragElement,
+              dropTarget.nextSibling
+            );
+          }
+
+          // Record new path after moving
+          const newPath = getElementPath(dragElement);
+
+          // Add to history
+          styleHistory.push({
+            elementPath: originalPath,
+            changes: {
+              type: "move",
+              from: originalPath,
+              to: newPath,
+              targetPath: getElementPath(dropTarget),
+              position: isAbove ? "before" : "after",
+            },
+            timestamp: new Date(),
+          });
+
+          updateHistoryDisplay();
+
+          // Update editor path if the moved element is currently being edited
+          if (currentElement === dragElement) {
+            editor.querySelector(".element-path").textContent = newPath;
+          }
+        }
+
+        // Clean up
+        isDragging = false;
+        if (dragGhost) {
+          dragGhost.remove();
+          dragGhost = null;
+        }
+        hideDropIndicator();
+        dragElement = null;
+      }
+
+      // Modify showEditor to enable dragging
+      const originalShowEditor = showEditor;
+      showEditor = function (element) {
+        originalShowEditor(element);
+        enableDragging(element);
+      };
+
+      // Event listeners
+      document.addEventListener("mouseover", (e) => {
+        if (isDragging) {
+          e.preventDefault();
+          return;
+        }
+
+        if (
+          e.target === popup ||
+          e.target === editor ||
+          editor.contains(e.target) ||
+          e.target === historyPanel ||
+          historyPanel.contains(e.target) ||
+          e.target === insertSelector ||
+          insertSelector.contains(e.target)
+        )
+          return;
+        if (e.target === document.body || e.target === document.documentElement)
+          return;
+
+        updateHighlight(e.target, "#2196F3");
+        showStyles(e.target);
+      });
+
+      document.addEventListener("mouseout", (e) => {
+        if (isDragging) {
+          e.preventDefault();
+          return;
+        }
+
+        if (
+          e.target === popup ||
+          e.target === editor ||
+          editor.contains(e.target) ||
+          e.target === historyPanel ||
+          historyPanel.contains(e.target)
+        )
+          return;
+        if (!currentElement) {
+          popup.classList.remove("visible");
+          highlight.style.opacity = "0";
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (isDragging) {
+          e.preventDefault();
+          return;
+        }
+
+        if (
+          e.target === popup ||
+          e.target === editor ||
+          editor.contains(e.target) ||
+          e.target === historyPanel ||
+          historyPanel.contains(e.target) ||
+          e.target === insertSelector ||
+          insertSelector.contains(e.target)
+        )
+          return;
+        if (e.target === document.body || e.target === document.documentElement)
+          return;
+
+        e.preventDefault();
+        showEditor(e.target);
+      });
+
+      document.addEventListener("scroll", () => {
+        if (currentElement) {
+          updateHighlight(currentElement, "#4CAF50");
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeEditor();
+          historyPanel.classList.remove("visible");
+        }
+
+        if (currentElement && (e.key === "Backspace" || e.key === "Delete")) {
+          e.preventDefault(); // Prevent browser back navigation
+
+          // Don't delete the main container
+          if (currentElement.id === "editor-main-container") {
+            return;
+          }
+
+          // Record the deletion in history
+          styleHistory.push({
+            elementPath: getElementPath(currentElement),
+            changes: {
+              type: "delete",
+              element: currentElement.outerHTML,
+            },
+            timestamp: new Date(),
+          });
+
+          // Store reference to the element being deleted
+          const deletedElement = currentElement;
+
+          // Close editor before deletion
+          closeEditor();
+
+          // Remove the element
+          deletedElement.remove();
+
+          // Update history display
+          updateHistoryDisplay();
+        }
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        // Move all body children (except scripts and editor components) to container
+        const bodyChildren = Array.from(document.body.children);
+        bodyChildren.forEach((child) => {
+          // Skip editor components and scripts
+          if (
+            child !== editor &&
+            child !== popup &&
+            child !== highlight &&
+            child !== historyPanel &&
+            child !== insertSelector &&
+            child !== positionIndicator &&
+            child.tagName !== "SCRIPT"
+          ) {
+            mainContainer.appendChild(child);
+          }
+        });
+
+        // Insert container as first element in body
+        document.body.insertBefore(mainContainer, document.body.firstChild);
+      });
+    </script>
+  </body>
+</html>
